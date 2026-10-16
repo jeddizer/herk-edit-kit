@@ -12,6 +12,7 @@
     "check:skills": "node scripts/sync-codex-skills.mjs --check",
     "setup": "node scripts/setup.mjs",
     "new-video": "node scripts/new-video.mjs",
+    "app": "node scripts/serve-app.mjs",
     "demo": "node scripts/new-video.mjs demo",
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check-kit.mjs",

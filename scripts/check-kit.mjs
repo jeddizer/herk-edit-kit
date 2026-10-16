@@ -48,7 +48,8 @@ for (const p of files) {
   const text=bytes.toString('utf8');
   // Report locations, never the value of a suspected credential.
   if (/(?:sk-[A-Za-z0-9]{20,}|gh[pous]_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY)/.test(text)) fail(`Possible credential: ${rel}`);
-  if (/(?:[A-Z]:[\\/](?:Users|home)[\\/]|\/Users\/|\/home\/[a-z])/.test(text)) fail(`Machine-specific path: ${rel}`);
+  // Unmodified upstream bundles in app/vendor contain Emscripten's virtual home path.
+  if (!rel.startsWith('app/vendor/') && /(?:[A-Z]:[\\/](?:Users|home)[\\/]|\/Users\/|\/home\/[a-z])/.test(text)) fail(`Machine-specific path: ${rel}`);
   if (/\.(mjs|js)$/.test(p)) {
     const check=spawnSync(process.execPath,['--check',p],{encoding:'utf8'});
     if(check.status !== 0) fail(`Syntax error: ${rel}\n${check.stderr}`);

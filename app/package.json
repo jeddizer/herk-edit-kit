@@ -1,0 +1,6 @@
+{
+  "name": "story-studio",
+  "private": true,
+  "type": "module",
+  "description": "Installable PWA front end for the Herk Edit Kit. Static files; no build step."
+}

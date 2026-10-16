@@ -36,6 +36,10 @@ For one stage, load the matching local skill:
 | Timeline animation | `gsap` |
 | Install HyperFrames catalog blocks | `hyperframes-registry` |
 
+Story Studio (`app/`) is a static PWA for quick phone edits; see
+`docs/STORY-STUDIO.md`. Its editing logic lives in `app/js/edit-core.js` with tests
+in `tests/story-studio.test.mjs`. Bump `VERSION` in `app/sw.js` when app files change.
+
 Before a creative session read `MOTION_PHILOSOPHY.md` and the project's DESIGN.md.
 The philosophy's fast sizzle pacing is a style reference. Give educational speech
 room to breathe. The project brief controls pacing, palette, and typography.
