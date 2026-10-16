@@ -55,9 +55,9 @@ export async function requestPersistence() {
 const SETTINGS_KEY = "story-studio:settings";
 export function loadPrefs() {
   try {
-    return { provider: "groq", keys: {}, language: "", prompt: "", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+    return { provider: "groq", keys: {}, language: "", prompt: "", maxSeconds: 30, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
   } catch {
-    return { provider: "groq", keys: {}, language: "", prompt: "" };
+    return { provider: "groq", keys: {}, language: "", prompt: "", maxSeconds: 30 };
   }
 }
 export function savePrefs(prefs) {

@@ -229,6 +229,17 @@
   <!-- Settings -->
   <dialog id="settings" class="sheet">
     <form method="dialog">
+      <h3>Story length</h3>
+      <label for="max-seconds">Maximum length</label>
+      <select id="max-seconds">
+        <option value="15">15 seconds</option>
+        <option value="30">30 seconds</option>
+        <option value="45">45 seconds</option>
+        <option value="60">60 seconds (one story card)</option>
+        <option value="90">90 seconds</option>
+        <option value="0">No limit</option>
+      </select>
+      <p class="hint">Applies to every story. The coach flags anything longer and can end it at the last full sentence that fits.</p>
       <h3>Transcription</h3>
       <div class="seg" id="provider-seg">
         <button type="button" data-provider="groq">Groq</button>

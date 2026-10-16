@@ -167,6 +167,9 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .time { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); white-space: nowrap; }
 .timeline { width: 100%; height: 56px; border-radius: 10px; background: var(--surface); display: block; touch-action: none; }
 .cut-summary { margin: 0; font-size: 13px; color: var(--muted); }
+.cut-summary.over { color: var(--yellow); }
+select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; font-size: 16px; }
+dialog h3 + label { margin-top: -4px; }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 2; }

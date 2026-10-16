@@ -15,6 +15,7 @@ import {
   speechRegionsFromEnvelope,
   refineWordTimings,
   longSilenceCuts,
+  fitToLimit,
   storyChecks,
   wordCutRange,
   toSrt,
@@ -163,4 +164,25 @@ test("long silences inside a word's span are still cut, and the word keeps its c
   assert.equal(out.length, 1);
   assert.equal(out[0].start, 0.5);
   assert.ok(Math.abs(out[0].end - (3 - 1.23)) < 1e-6);
+});
+
+test("length limit: ends at the last full sentence that fits and the coach flags overruns", () => {
+  const words = [];
+  let t = 0;
+  for (let i = 0; i < 40; i++) {
+    words.push({ text: i % 6 === 5 ? "done." : i % 6 === 2 ? "this," : "word", start: t, end: t + 0.5, index: i });
+    t += 1;
+  }
+  const tl = buildTimeline([{ start: 0, end: 40 }]);
+  const end = fitToLimit(words, tl, 30);
+  assert.equal(end, 29.72, "after the sentence ending at 29.5 s, not mid-phrase");
+  assert.equal(fitToLimit(words, tl, 60), null, "already fits");
+  assert.equal(fitToLimit(words, tl, 0), null, "no limit");
+  const base = { outWords: words, timeline: tl, captionsOn: true, shots: [{ start: 0, end: 40, zoom: 1 }], captionY: 0.66, hasTranscript: true };
+  const over = storyChecks({ ...base, limit: 30 }).checks.find((c) => c.title === "Over your 30 s limit");
+  assert.equal(over.status, "bad");
+  assert.equal(over.fix, "fit-limit");
+  const within = storyChecks({ ...base, timeline: buildTimeline([{ start: 0, end: 25 }]), limit: 30 }).checks;
+  assert.ok(within.some((c) => c.title === "Within your 30 s limit"));
+  assert.ok(!within.some((c) => c.title === "Fits one story card"), "the 60 s card check yields to a tighter limit");
 });

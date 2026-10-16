@@ -17,6 +17,7 @@ review loop, use the agent skills (`/short-form-edit`, `/edit-video`) on a compu
 | Captions | 1–3 word chunks split on phrases, Montserrat ExtraBold caps in a dark box with a light edge, shown two frames early and held until the next chunk. Teal/red/green/yellow accents. | Playbook captions section |
 | Framing | 9:16, 4:5, or 1:1. Fill (crop) or fit with a blurred background. Pan and zoom. | — |
 | Punch-ins | Alternating zoom on every jump cut, or at phrase boundaries so no shot holds past ~2.8 s. Zoom anchors on the face line. | Playbook layouts and pacing |
+| Length limit | A maximum length (default **30 s**; 15, 45, 60, 90 s, or none) in Settings applies to every story. The summary turns yellow, a marker shows where the limit falls on the clip, the coach offers to end at the last full sentence that fits (undo with **Restore ending**), and export asks before saving an overlong story. | Your preference |
 | Coach | Scores the edit: first word, hook in 3 s, dead air, words per second, ending, call to action, story length, caption safe zone, static shots. Each warning has a one-tap fix. | Playbook story and pacing |
 | Export | Frame-accurate, single pass: each output frame maps to an exact source time and audio is sliced sample-accurately from the same ranges, with 5 ms fades at joins. | Playbook "lessons that cost us time" |
 | Kit hand-off | Download captions (`.srt`) and a JSON bundle with the EDL and source/edited word timings in this kit's transcript format. | [Tools guide](TOOLS-AND-API-KEYS.md) |

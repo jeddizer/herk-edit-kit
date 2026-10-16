@@ -465,10 +465,23 @@ export function shotAt(shots, t) {
 }
 
 // ---------------------------------------------------------------------------
+// Length limit. Find where to end so the story fits: after the last sentence
+// (else phrase, else word) that finishes within the limit, plus a short tail.
+// Returns the edited-timeline time to end at, or null when it already fits.
+export function fitToLimit(outWords, timeline, limit, tailPad = 0.22) {
+  const total = timelineDuration(timeline);
+  if (!limit || total <= limit || !outWords.length) return null;
+  const fits = outWords.filter((w) => w.end + tailPad <= limit);
+  if (!fits.length) return null;
+  const end = [...fits].reverse().find((w) => SENTENCE_END.test(w.text)) ?? [...fits].reverse().find((w) => PHRASE_END.test(w.text)) ?? fits.at(-1);
+  return round(Math.min(limit, end.end + tailPad));
+}
+
+// ---------------------------------------------------------------------------
 // Story coach: playbook checks against the edited result.
 const CTA = /\b(comment|follow|dm|message|link|save|share|subscribe|click|tap|reply|book|call|visit|join|sign|download|register|order|shop|swipe|check)\b/i;
 
-export function storyChecks({ outWords, timeline, captionsOn, shots, captionY, format = "story", hasTranscript }) {
+export function storyChecks({ outWords, timeline, captionsOn, shots, captionY, format = "story", hasTranscript, limit = 0 }) {
   const total = timelineDuration(timeline);
   const checks = [];
   const add = (status, title, detail, fix) => checks.push({ status, title, detail, fix });
@@ -512,7 +525,14 @@ export function storyChecks({ outWords, timeline, captionsOn, shots, captionY, f
     else add("warn", "Long ending", `${fmt(tail)} of footage after the last word.`, "pace-tight");
   }
 
-  if (format === "story") {
+  if (limit) {
+    if (total <= limit) add("good", `Within your ${limit} s limit`, `${fmt(total)} long.`);
+    else {
+      const at = outWords.filter((w) => w.start < limit).slice(-6).map((w) => w.text).join(" ");
+      add("bad", `Over your ${limit} s limit`, `${fmt(total)}, ${fmt(total - limit)} too long.${at ? ` At ${limit} s you're saying “…${at}”.` : ""} Cut lines in the transcript, or end at the last full sentence that fits.`, hasTranscript ? "fit-limit" : null);
+    }
+  }
+  if (format === "story" && (!limit || limit > 60)) {
     if (total <= 60) add("good", "Fits one story card", `${fmt(total)} (stories hold up to 60 s each).`);
     else add("warn", "Splits into several story cards", `${fmt(total)} becomes ${Math.ceil(total / 60)} cards. Land the payoff before 60 s or post it as a reel.`);
   }

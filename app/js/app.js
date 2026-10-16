@@ -15,6 +15,7 @@ import {
   chunkCaptions,
   computeShots,
   storyChecks,
+  fitToLimit,
   speechRegionsFromEnvelope,
   refineWordTimings,
   normalizeTranscript,
@@ -92,11 +93,12 @@ function derive() {
     .filter(([i, e]) => e.cut && words[i])
     .map(([i]) => ({ kind: "word", ...wordCutRange(words, Number(i)), note: `Removed “${words[i].text}”` }));
   const cuts = [...silence, ...mistakes.filter((m) => m.enabled), ...wordCuts];
+  if (p.trimEnd != null && p.trimEnd < duration) cuts.push({ kind: "trim", start: p.trimEnd, end: duration, note: "Ending trimmed to fit the length limit" });
   const timeline = buildTimeline(keepRanges(cuts, duration));
   const outWords = retimeWords(words, timeline, p.wordEdits);
   const captions = chunkCaptions(outWords, { maxWords: s.captionStyle === "word" ? 1 : s.captionWords, maxChars: s.captionStyle === "word" ? 30 : 18 });
   const shots = computeShots(timeline, outWords, s.punchMode, { punch: s.punchZoom });
-  const coach = storyChecks({ outWords, timeline, captionsOn: s.captions && outWords.length > 0, shots, captionY: s.captionY, format: s.format, hasTranscript: words.length > 0 });
+  const coach = storyChecks({ outWords, timeline, captionsOn: s.captions && outWords.length > 0, shots, captionY: s.captionY, format: s.format, hasTranscript: words.length > 0, limit: state.prefs.maxSeconds });
   state.d = { words, silence, mistakes, cuts, timeline, outWords, captions, shots, coach, total: timelineDuration(timeline) };
 }
 
@@ -348,6 +350,10 @@ function renderCutPanel() {
     </div>`;
   }
 
+  if (p.trimEnd != null) {
+    status.insertAdjacentHTML("beforeend", `<div class="status-card"><p>Ending trimmed at ${fmtTime(p.trimEnd)} of the original to fit your ${state.prefs.maxSeconds || ""} s limit.</p><div class="row"><button class="btn" data-action="restore-ending">Restore ending</button></div></div>`);
+  }
+
   const mistakes = d.mistakes;
   const label = { stutter: "Stutter", retake: "Retake", false_start: "False start", filler: "Filler" };
   $("#mistakes").innerHTML = mistakes.length
@@ -397,6 +403,7 @@ function renderCoach() {
     "punch-phrases": "Punch in every phrase",
     hook: "Add a hook title",
     transcribe: "Transcribe",
+    "fit-limit": "End at the last sentence that fits",
   };
   $("#coach").innerHTML = `<div class="score"><div class="ring" style="--p:${score}"><span>${score}</span></div>
       <div><strong>Story check</strong><p class="hint">Measured against the kit's house reel style. A high score cannot fix a weak raw take: script the hook before you record.</p></div></div>
@@ -416,6 +423,13 @@ function applyFix(fix) {
   if (fix === "caption-y") s.captionY = 0.66;
   if (fix === "punch-phrases") s.punchMode = "phrases";
   if (fix === "transcribe") return runTranscription();
+  if (fix === "fit-limit") {
+    const end = fitToLimit(state.d.outWords, state.d.timeline, state.prefs.maxSeconds);
+    if (end === null) return toast("No complete sentence fits inside the limit. Cut lines in the transcript instead.", true);
+    state.project.trimEnd = srcAt(state.d.timeline, end);
+    update();
+    return toast(`Ending trimmed to ${fmtTime(end)}. Restore it from the Cut tab.`);
+  }
   if (fix === "hook") {
     setTab("captions");
     $("#hook-input").focus();
@@ -449,7 +463,10 @@ function syncControls() {
   $("[data-setting=captionWords]").disabled = s.captionStyle === "word";
   const d = state.d;
   const src = state.project.media.duration;
-  $("#cut-summary").textContent = `${fmtTime(src)} → ${fmtTime(d.total)} · ${(src - d.total).toFixed(1)} s removed in ${d.timeline.length > 0 ? d.timeline.length - 1 : 0} cuts · ${FORMATS[s.format].label}`;
+  const limit = state.prefs.maxSeconds;
+  const limitText = limit ? ` · ${d.total > limit ? "⚠ " : ""}limit ${limit} s` : "";
+  $("#cut-summary").textContent = `${fmtTime(src)} → ${fmtTime(d.total)}${limitText} · ${(src - d.total).toFixed(1)} s removed in ${d.timeline.length > 0 ? d.timeline.length - 1 : 0} cuts · ${FORMATS[s.format].label}`;
+  $("#cut-summary").classList.toggle("over", !!limit && d.total > limit);
   $("#scrub").max = Math.max(0.01, d.total).toFixed(2);
 }
 
@@ -584,6 +601,12 @@ function renderTimeline() {
       ctx.fillRect(x, (h - bh) / 2, 1, bh);
     }
   }
+  const limit = state.prefs.maxSeconds;
+  if (limit && state.d.total > limit) {
+    const x = (srcAt(state.d.timeline, limit) / dur) * w;
+    ctx.fillStyle = "#facc15";
+    ctx.fillRect(Math.round(x) - 1, 0, 2 * dpr, h);
+  }
   c._base = ctx.getImageData(0, 0, w, h);
   renderPlayhead();
 }
@@ -635,6 +658,7 @@ function openSettings() {
   renderProviderSettings();
   $("#lang").value = state.prefs.language;
   $("#vocab").value = state.prefs.prompt;
+  $("#max-seconds").value = String(state.prefs.maxSeconds);
   $("#settings").showModal();
 }
 function renderProviderSettings() {
@@ -648,8 +672,9 @@ function saveSettings() {
   prefs.keys = { ...prefs.keys, [prefs.provider]: $("#api-key").value.trim() };
   prefs.language = $("#lang").value.trim().toLowerCase();
   prefs.prompt = $("#vocab").value.trim();
+  prefs.maxSeconds = Number($("#max-seconds").value);
   store.savePrefs(prefs);
-  if (state.project) renderCutPanel();
+  if (state.project) update();
 }
 
 // ---------------------------------------------------------------------------
@@ -657,6 +682,11 @@ function saveSettings() {
 async function startExport() {
   stop();
   if (!state.d.total) return toast("Nothing to export.", true);
+  const limit = state.prefs.maxSeconds;
+  if (limit && state.d.total > limit + 0.05 && !confirm(`This story is ${state.d.total.toFixed(1)} s, over your ${limit} s limit. Export anyway?`)) {
+    setTab("coach");
+    return;
+  }
   const sheet = $("#export-sheet");
   $("#export-title").textContent = "Exporting";
   $("#export-progress").value = 0;
@@ -762,6 +792,10 @@ document.addEventListener("click", async (ev) => {
     state.project.decisions[m.id] = !m.enabled;
     update();
   } else if (a === "fix") applyFix(el.dataset.fix);
+  else if (a === "restore-ending") {
+    state.project.trimEnd = null;
+    update();
+  }
   else if (a === "export") startExport();
   else if (a === "close-export") {
     state.exportAbort?.abort();
