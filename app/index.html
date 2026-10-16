@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Story Studio</title>
+  <meta name="description" content="Cut dead air and retakes, caption, and reframe talking-head stories on your phone. The Herk Edit Kit's editing rules, running on your device.">
+  <meta name="theme-color" content="#0d0e12">
+  <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Story Studio">
+  <link rel="preload" href="fonts/montserrat-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">{ "imports": { "mediabunny": "./vendor/mediabunny.min.mjs" } }</script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Home -->
+  <main id="home" class="screen">
+    <header class="home-head">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" width="40" height="40">
+        <div>
+          <h1>Story Studio</h1>
+          <p>The Herk Edit Kit, in your pocket</p>
+        </div>
+      </div>
+      <button class="icon-btn" data-action="open-settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </header>
+
+    <button class="new-story" data-action="pick-video">
+      <span class="plus" aria-hidden="true">+</span>
+      <span><strong>New story</strong><small>Pick a talking-head clip from your camera roll</small></span>
+    </button>
+
+    <section id="install-card" class="card install" hidden>
+      <strong>Install on your home screen</strong>
+      <p id="install-text">Open in Safari, tap Share, then Add to Home Screen. It opens full screen and works offline.</p>
+      <button id="install-btn" class="btn" hidden>Install app</button>
+    </section>
+
+    <section>
+      <h2 class="section-title">Recent</h2>
+      <ul id="project-list" class="project-list"></ul>
+      <p id="empty-projects" class="muted">Your edits stay on this device.</p>
+    </section>
+
+    <section class="card how">
+      <h2 class="section-title">What it does</h2>
+      <ol>
+        <li><strong>Cuts dead air</strong> between phrases and keeps your natural beats.</li>
+        <li><strong>Finds retakes, stutters, and fillers</strong> for you to review.</li>
+        <li><strong>Captions every word</strong> in the house style: 1–3 word chunks in a dark box.</li>
+        <li><strong>Reframes to 9:16</strong> with punch-ins on the cuts so the frame keeps moving.</li>
+        <li><strong>Coaches the story:</strong> hook, pace, ending, and safe zones.</li>
+      </ol>
+    </section>
+    <p class="fineprint">Video never leaves your device. Only speech audio goes to the transcription service you choose, with your own key.</p>
+  </main>
+
+  <!-- Editor -->
+  <main id="editor" class="screen" hidden>
+    <header class="editor-head">
+      <button class="icon-btn" data-action="go-home" aria-label="Back to projects">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <input id="project-name" class="name-input" aria-label="Project name" maxlength="80">
+      <button class="btn primary" data-action="export">Export</button>
+    </header>
+
+    <div class="editor-body">
+      <section class="stage">
+        <div class="canvas-wrap">
+          <canvas id="preview" width="540" height="960"></canvas>
+          <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busy-text">Working…</span></div>
+        </div>
+        <div class="transport">
+          <button id="play-btn" class="icon-btn play" data-action="toggle-play" aria-label="Play">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg>
+          </button>
+          <input id="scrub" type="range" min="0" max="1" step="0.01" value="0" aria-label="Position in edited story">
+          <span id="time" class="time">0:00.0 / 0:00.0</span>
+        </div>
+        <canvas id="timeline" class="timeline" height="56" aria-label="Source clip: kept parts bright, cut parts red. Tap to jump."></canvas>
+        <p id="cut-summary" class="cut-summary"></p>
+      </section>
+
+      <section class="panel">
+        <nav class="tabs" role="tablist">
+          <button role="tab" class="tab active" data-tab="cut">Cut</button>
+          <button role="tab" class="tab" data-tab="captions">Captions</button>
+          <button role="tab" class="tab" data-tab="look">Look</button>
+          <button role="tab" class="tab" data-tab="coach">Coach <span id="score-badge" class="badge"></span></button>
+        </nav>
+
+        <div class="tab-panel" data-panel="cut">
+          <div id="transcript-status"></div>
+          <div class="field">
+            <label>Pace</label>
+            <div class="seg" data-setting="pace">
+              <button data-value="off">Off</button>
+              <button data-value="natural">Natural</button>
+              <button data-value="tight">Tight</button>
+            </div>
+            <p class="hint">Tight is the house reel style: phrase gaps near 0.2 s, beats after commas kept.</p>
+          </div>
+          <div id="mistakes"></div>
+          <div id="words"></div>
+        </div>
+
+        <div class="tab-panel" data-panel="captions" hidden>
+          <label class="switch"><input type="checkbox" data-setting="captions"><span>Show captions</span></label>
+          <div class="field">
+            <label>Style</label>
+            <div class="seg" data-setting="captionStyle">
+              <button data-value="boxed">Boxed</button>
+              <button data-value="outline">Outline</button>
+              <button data-value="word">One word</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Words per caption <output data-out="captionWords"></output></label>
+            <input type="range" min="1" max="3" step="1" data-setting="captionWords">
+          </div>
+          <div class="field">
+            <label>Size <output data-out="captionSize"></output></label>
+            <input type="range" min="0.7" max="1.4" step="0.05" data-setting="captionSize">
+          </div>
+          <div class="field">
+            <label>Height on screen <output data-out="captionY"></output></label>
+            <input type="range" min="0.1" max="0.9" step="0.01" data-setting="captionY">
+            <p class="hint">Keep captions on the chest, never over the mouth. The red bands mark the app's UI.</p>
+          </div>
+          <label class="switch"><input type="checkbox" data-setting="uppercase"><span>All caps</span></label>
+          <div class="field">
+            <label for="hook-input">Hook title (first seconds)</label>
+            <input id="hook-input" type="text" data-setting="hookText" maxlength="80" placeholder="e.g. I fired my VA and hired an AI">
+            <label>Show for <output data-out="hookSeconds"></output></label>
+            <input type="range" min="1" max="6" step="0.5" data-setting="hookSeconds">
+          </div>
+          <p class="hint">Tap any word in the Cut tab to fix its spelling, colour it (teal for the idea, red for the problem, green for the payoff), or give it the serif accent.</p>
+        </div>
+
+        <div class="tab-panel" data-panel="look" hidden>
+          <div class="field">
+            <label>Format</label>
+            <div class="seg" data-setting="format">
+              <button data-value="story">9:16</button>
+              <button data-value="portrait">4:5</button>
+              <button data-value="square">1:1</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Framing</label>
+            <div class="seg" data-setting="fit">
+              <button data-value="fill">Fill</button>
+              <button data-value="fit">Fit + blur</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Zoom <output data-out="zoom"></output></label>
+            <input type="range" min="1" max="2" step="0.01" data-setting="zoom">
+          </div>
+          <div class="field">
+            <label>Move left / right <output data-out="panX"></output></label>
+            <input type="range" min="-1" max="1" step="0.01" data-setting="panX">
+          </div>
+          <div class="field">
+            <label>Move up / down <output data-out="panY"></output></label>
+            <input type="range" min="-1" max="1" step="0.01" data-setting="panY">
+          </div>
+          <div class="field">
+            <label>Punch-ins</label>
+            <div class="seg" data-setting="punchMode">
+              <button data-value="off">Off</button>
+              <button data-value="cuts">On cuts</button>
+              <button data-value="phrases">Every phrase</button>
+            </div>
+            <p class="hint">Alternating zoom hides jump cuts. “Every phrase” keeps any shot under ~3 s.</p>
+          </div>
+          <div class="field">
+            <label>Punch-in strength <output data-out="punchZoom"></output></label>
+            <input type="range" min="1.05" max="1.35" step="0.01" data-setting="punchZoom">
+          </div>
+          <div class="field">
+            <label>Face height <output data-out="focusY"></output></label>
+            <input type="range" min="0.1" max="0.9" step="0.01" data-setting="focusY">
+            <p class="hint">Punch-ins zoom toward this line so your face stays in frame.</p>
+          </div>
+          <label class="switch"><input type="checkbox" data-setting="guides"><span>Show safe-zone guides (preview only)</span></label>
+        </div>
+
+        <div class="tab-panel" data-panel="coach" hidden>
+          <div id="coach"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Word editor -->
+  <dialog id="word-sheet" class="sheet">
+    <form method="dialog">
+      <h3>Edit word</h3>
+      <input id="word-text" type="text" aria-label="Word text" autocomplete="off" autocapitalize="off" spellcheck="true">
+      <div class="swatches" role="group" aria-label="Caption colour">
+        <button type="button" data-color="" class="sw none" aria-label="No colour"></button>
+        <button type="button" data-color="teal" class="sw teal" aria-label="Teal"></button>
+        <button type="button" data-color="red" class="sw red" aria-label="Red"></button>
+        <button type="button" data-color="green" class="sw green" aria-label="Green"></button>
+        <button type="button" data-color="yellow" class="sw yellow" aria-label="Yellow"></button>
+      </div>
+      <label class="switch"><input id="word-serif" type="checkbox"><span>Serif accent</span></label>
+      <div class="row">
+        <button type="button" class="btn" data-action="word-play">Play from here</button>
+        <button type="button" class="btn danger" id="word-cut-btn" data-action="word-cut">Cut word</button>
+      </div>
+      <button class="btn primary wide" value="done">Done</button>
+    </form>
+  </dialog>
+
+  <!-- Settings -->
+  <dialog id="settings" class="sheet">
+    <form method="dialog">
+      <h3>Story length</h3>
+      <label for="max-seconds">Maximum length</label>
+      <select id="max-seconds">
+        <option value="15">15 seconds</option>
+        <option value="30">30 seconds</option>
+        <option value="45">45 seconds</option>
+        <option value="60">60 seconds (one story card)</option>
+        <option value="90">90 seconds</option>
+        <option value="0">No limit</option>
+      </select>
+      <p class="hint">Applies to every story. The coach flags anything longer and can end it at the last full sentence that fits.</p>
+      <h3>Transcription</h3>
+      <div class="seg" id="provider-seg">
+        <button type="button" data-provider="groq">Groq</button>
+        <button type="button" data-provider="openai">OpenAI</button>
+        <button type="button" data-provider="elevenlabs">ElevenLabs</button>
+      </div>
+      <p id="provider-note" class="hint"></p>
+      <label for="api-key">API key</label>
+      <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+      <div class="row two">
+        <div>
+          <label for="lang">Language</label>
+          <input id="lang" type="text" maxlength="5" placeholder="auto (en, tl…)">
+        </div>
+        <div>
+          <label for="vocab">Names to spell right</label>
+          <input id="vocab" type="text" maxlength="200" placeholder="ThinkBIT, Claude…">
+        </div>
+      </div>
+      <p class="hint">Keys stay in this browser's storage and go only to the provider you pick. Only 16 kHz speech audio is uploaded, never the video.</p>
+      <button class="btn primary wide" value="save">Save</button>
+      <button type="button" class="btn danger wide" data-action="wipe">Delete all projects on this device</button>
+    </form>
+  </dialog>
+
+  <!-- Export -->
+  <dialog id="export-sheet" class="sheet">
+    <div class="export-body">
+      <h3 id="export-title">Exporting</h3>
+      <progress id="export-progress" max="1" value="0"></progress>
+      <p id="export-status" class="hint">Keep this screen open.</p>
+      <video id="export-video" playsinline controls hidden></video>
+      <div id="export-actions" class="export-actions" hidden>
+        <button class="btn primary wide" data-action="share">Share to Instagram, TikTok…</button>
+        <button class="btn wide" data-action="download">Save video</button>
+        <div class="row">
+          <button class="btn" data-action="download-srt">Captions (.srt)</button>
+          <button class="btn" data-action="download-kit">Kit files (.json)</button>
+        </div>
+      </div>
+      <button class="btn wide" data-action="close-export">Cancel</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <video id="source" playsinline preload="auto" aria-hidden="true"></video>
+  <input type="file" id="file-input" accept="video/*" hidden>
+  <input type="file" id="transcript-input" accept=".json,application/json" hidden>
+</body>
+</html>

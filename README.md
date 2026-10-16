@@ -49,6 +49,17 @@ https://github.com/user-attachments/assets/4ad48761-d14c-407a-9dec-1b76a9afb04a
 - **Short-form editing:** reels, YouTube Shorts, hook and payoff planning, precise captions, moving B-roll, and audio review.
 - **12 existing teaching projects** preserved from the original kit.
 - A synthetic starter composition and editing fixture that need no footage or API key.
+- **Story Studio**, an offline-capable phone app for quick story edits ([guide](docs/STORY-STUDIO.md)).
+
+## Story Studio: edit stories on your phone
+
+[`app/`](app) is an installable web app (PWA) that runs this kit's editing rules on
+your phone or tablet: it trims dead air between phrases, proposes retakes and
+stutters for review, captions every word in the house style, reframes to 9:16 with
+punch-ins, coaches the hook and pacing, and exports an MP4 you can share straight to
+Instagram or TikTok. The video stays on your device. Run `npm run app` locally, or
+deploy `app/` to HTTPS and add it to your home screen. See
+[docs/STORY-STUDIO.md](docs/STORY-STUDIO.md).
 
 ## Tools and optional services
 
