@@ -38,9 +38,12 @@ export const getProject = (id) => tx("projects", "readonly", (s) => s.get(id));
 export const saveProject = (p) => tx("projects", "readwrite", (s) => s.put({ ...p, updated: Date.now() }));
 export const getMedia = (id) => tx("media", "readonly", (s) => s.get(id));
 export const saveMedia = (id, blob) => tx("media", "readwrite", (s) => s.put(blob, id));
+export const deleteMedia = (id) => tx("media", "readwrite", (s) => s.delete(id));
 export async function deleteProject(id) {
   await tx("projects", "readwrite", (s) => s.delete(id));
   await tx("media", "readwrite", (s) => s.delete(id));
+  // Recap projects keep one entry per shot under "<project id>:<item id>".
+  await tx("media", "readwrite", (s) => s.delete(IDBKeyRange.bound(`${id}:`, `${id}:\uffff`)));
 }
 
 // Ask the browser not to evict saved clips under storage pressure.

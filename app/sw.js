@@ -1,6 +1,6 @@
 // Story Studio service worker: offline app shell and the Android share target.
 // Bump VERSION whenever a cached file changes so installed apps update.
-const VERSION = "story-studio-v2";
+const VERSION = "story-studio-v6";
 const SHELL = [
   "./",
   "./index.html",
@@ -12,12 +12,18 @@ const SHELL = [
   "./js/media.js",
   "./js/transcribe.js",
   "./js/store.js",
+  "./js/recap-core.js",
+  "./js/recap-render.js",
+  "./js/recap-media.js",
+  "./js/recap-app.js",
+  "./js/music.js",
   "./vendor/mediabunny.min.mjs",
   "./vendor/mediabunny-aac-encoder.min.mjs",
   "./fonts/montserrat-800-latin.woff2",
   "./fonts/montserrat-800-latin-ext.woff2",
   "./fonts/abril-fatface-latin.woff2",
   "./fonts/abril-fatface-latin-ext.woff2",
+  "./fonts/inter-latin.woff2",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

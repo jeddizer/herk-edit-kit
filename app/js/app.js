@@ -26,6 +26,7 @@ import {
 import { drawFrame, loadFonts, FORMATS, DEFAULT_SETTINGS } from "./render.js";
 import { PROVIDERS, transcribe } from "./transcribe.js";
 import * as store from "./store.js";
+import { createRecapEditor } from "./recap-app.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -130,6 +131,8 @@ async function showHome() {
   video.removeAttribute("src");
   video.load();
   $("#editor").hidden = true;
+  if (recap?.active) recap.close();
+  $("#recap").hidden = true;
   $("#home").hidden = false;
   const list = await store.listProjects().catch(() => []);
   $("#empty-projects").textContent = list.length ? "Your edits stay on this device." : "No stories yet. Your edits stay on this device.";
@@ -138,7 +141,7 @@ async function showHome() {
       (p) => `<li class="project">
         <button class="open" data-action="open-project" data-id="${esc(p.id)}">
           ${p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="">` : `<div class="thumb"></div>`}
-          <div class="meta"><strong>${esc(p.name)}</strong><span>${fmtTime(p.media?.duration ?? 0)} · ${new Date(p.updated).toLocaleDateString()}</span></div>
+          <div class="meta"><strong>${esc(p.name)}</strong><span>${p.mode === "recap" ? `Recap · ${p.recap?.items?.length ?? 0} shots` : fmtTime(p.media?.duration ?? 0)} · ${new Date(p.updated).toLocaleDateString()}</span></div>
         </button>
         <button class="del" data-action="delete-project" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}">×</button>
       </li>`,
@@ -659,6 +662,7 @@ function openSettings() {
   $("#lang").value = state.prefs.language;
   $("#vocab").value = state.prefs.prompt;
   $("#max-seconds").value = String(state.prefs.maxSeconds);
+  showLogoPreview();
   $("#settings").showModal();
 }
 function renderProviderSettings() {
@@ -675,7 +679,35 @@ function saveSettings() {
   prefs.maxSeconds = Number($("#max-seconds").value);
   store.savePrefs(prefs);
   if (state.project) update();
+  recap.refresh();
 }
+
+async function showLogoPreview() {
+  const blob = await store.getMedia("brand:logo").catch(() => null);
+  const img = $("#logo-preview");
+  if (img.src) URL.revokeObjectURL(img.src);
+  img.hidden = !blob;
+  $("#logo-none").hidden = !!blob;
+  if (blob) img.src = URL.createObjectURL(blob);
+}
+$("#logo-input").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  await store.saveMedia("brand:logo", f);
+  showLogoPreview();
+  recap.refresh();
+  toast("Logo saved on this device.");
+});
+
+// ---------------------------------------------------------------------------
+// Event recaps
+const recap = createRecapEditor({ toast, busy, onHome: () => showHome(), getPrefs: () => state.prefs });
+$("#new-recap-files").addEventListener("change", (e) => {
+  const files = [...e.target.files];
+  e.target.value = "";
+  if (files.length) recap.startNew(files);
+});
 
 // ---------------------------------------------------------------------------
 // Export
@@ -774,11 +806,22 @@ document.addEventListener("click", async (ev) => {
   const el = ev.target.closest("[data-action]");
   if (!el) return;
   const a = el.dataset.action;
-  if (a === "pick-video") $("#file-input").click();
+  if (a === "pick-video") {
+    $("#mode-sheet").close();
+    $("#file-input").click();
+  }
   else if (a === "open-settings") openSettings();
-  else if (a === "open-project") loadProject(el.dataset.id);
+  else if (a === "open-project") {
+    const p = await store.getProject(el.dataset.id);
+    if (p?.mode === "recap") recap.open(el.dataset.id);
+    else loadProject(el.dataset.id);
+  } else if (a === "new-story") $("#mode-sheet").showModal();
+  else if (a === "new-recap") {
+    $("#mode-sheet").close();
+    $("#new-recap-files").click();
+  } else if (a === "pick-logo") $("#logo-input").click();
   else if (a === "delete-project") {
-    if (confirm("Delete this story and its clip from this device?")) {
+    if (confirm("Delete this story and its media from this device?")) {
       await store.deleteProject(el.dataset.id);
       showHome();
     }

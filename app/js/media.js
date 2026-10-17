@@ -167,7 +167,7 @@ export async function exportStory({ file, model, timeline, fps = 30, onProgress 
     const canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(W, H) : Object.assign(document.createElement("canvas"), { width: W, height: H });
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    const videoSource = new CanvasSource(canvas, { codec: videoCodec, bitrate: 10_000_000, keyFrameInterval: 2 });
+    const videoSource = new CanvasSource(canvas, { codec: videoCodec, bitrate: 5_000_000, keyFrameInterval: 2 });
     output.addVideoTrack(videoSource, { frameRate: fps });
     let audioSource = null;
     if (aTrack && audioCodec && (await aTrack.canDecode())) {
@@ -220,7 +220,7 @@ export async function exportStory({ file, model, timeline, fps = 30, onProgress 
 // Some browsers (older Safari) cannot encode AAC natively. Load a WASM AAC
 // encoder only then, so MP4 exports always carry audio social apps accept.
 let aacReady = null;
-function ensureAac() {
+export function ensureAac() {
   aacReady ??= (async () => {
     if (await canEncodeAudio("aac", { numberOfChannels: 2, sampleRate: 48000 })) return;
     const { registerAacEncoder } = await import("../vendor/mediabunny-aac-encoder.min.mjs");
