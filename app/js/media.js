@@ -167,7 +167,7 @@ export async function exportStory({ file, model, timeline, fps = 30, onProgress 
     const canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(W, H) : Object.assign(document.createElement("canvas"), { width: W, height: H });
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    const videoSource = new CanvasSource(canvas, { codec: videoCodec, bitrate: 10_000_000, keyFrameInterval: 2 });
+    const videoSource = new CanvasSource(canvas, { codec: videoCodec, bitrate: 5_000_000, keyFrameInterval: 2 });
     output.addVideoTrack(videoSource, { frameRate: fps });
     let audioSource = null;
     if (aTrack && audioCodec && (await aTrack.canDecode())) {
