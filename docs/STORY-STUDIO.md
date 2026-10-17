@@ -22,6 +22,30 @@ review loop, use the agent skills (`/short-form-edit`, `/edit-video`) on a compu
 | Export | Frame-accurate, single pass: each output frame maps to an exact source time and audio is sliced sample-accurately from the same ranges, with 5 ms fades at joins. | Playbook "lessons that cost us time" |
 | Kit hand-off | Download captions (`.srt`) and a JSON bundle with the EDL and source/edited word timings in this kit's transcript format. | [Tools guide](TOOLS-AND-API-KEYS.md) |
 
+## Event recap mode
+
+For posts made from event photos and clips rather than a talking clip. New story ›
+**Event recap**, pick your shots in order, and write only the lines you want.
+
+| Part | What it does |
+| --- | --- |
+| Shots | Photos and clips in your order. Photos get a slow push or pan (landscape shots pan across, portrait shots push in, the last shot pulls back). Clips can be trimmed. Tap a thumbnail to preview that shot. |
+| Your words | An opening line over the first shot, an optional second line after 3 s ("Can we do it?"), a line per shot only where you write one, and an ending line on the last shot. Text looks like Instagram's own: sentence case in white boxes. |
+| Screen recording | Shows as a small phone beside the shots you choose and slides out as the ending lands. Long pauses, loading screens and a still opening are cut automatically; "Skip the first" trims the start. |
+| Beat | An original, copyright-free 120 BPM track made on the device: a ticking build under the opening line, a drop on the first cut, every cut on a kick, a hit on the ending. Or no music, to add a track inside Instagram. |
+| Logo | Saved once in Settings › Brand logo and shown small under the ending line. |
+| Length | Shots snap to the beat and photos shorten to fit your limit; it warns rather than dropping shots. |
+
+These defaults come from the review of the first recap made with this kit:
+
+- No automatic labels, checkmarks, taglines or title cards. Text appears only where you write it, so it never claims a photo shows something it does not.
+- One ending only, on a real shot, not a separate branded card.
+- The app demo rides beside the event photos instead of taking its own screen time.
+- Hard cuts on the beat; every photo moves.
+
+The app does not judge the story for you: it will not notice that a photo is from the
+wrong day, blur a QR code, or check a claim. Read every line against its shot before posting.
+
 Whisper often stretches a word across the pause after it. Story Studio tightens
 each word to its voiced audio, and cuts any silence of 0.8 s or more found in the
 audio itself, so those pauses are still removed.

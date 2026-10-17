@@ -220,7 +220,7 @@ export async function exportStory({ file, model, timeline, fps = 30, onProgress 
 // Some browsers (older Safari) cannot encode AAC natively. Load a WASM AAC
 // encoder only then, so MP4 exports always carry audio social apps accept.
 let aacReady = null;
-function ensureAac() {
+export function ensureAac() {
   aacReady ??= (async () => {
     if (await canEncodeAudio("aac", { numberOfChannels: 2, sampleRate: 48000 })) return;
     const { registerAacEncoder } = await import("../vendor/mediabunny-aac-encoder.min.mjs");

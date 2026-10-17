@@ -15,6 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Story Studio">
   <link rel="preload" href="fonts/montserrat-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
   <script type="importmap">{ "imports": { "mediabunny": "./vendor/mediabunny.min.mjs" } }</script>
   <script type="module" src="js/app.js"></script>
@@ -35,9 +36,9 @@
       </button>
     </header>
 
-    <button class="new-story" data-action="pick-video">
+    <button class="new-story" data-action="new-story">
       <span class="plus" aria-hidden="true">+</span>
-      <span><strong>New story</strong><small>Pick a talking-head clip from your camera roll</small></span>
+      <span><strong>New story</strong><small>Event photos and clips, or a clip of you talking</small></span>
     </button>
 
     <section id="install-card" class="card install" hidden>
@@ -205,6 +206,105 @@
     </div>
   </main>
 
+  <!-- Event recap -->
+  <main id="recap" class="screen" hidden>
+    <header class="editor-head">
+      <button class="icon-btn" data-recap="home" aria-label="Back to projects">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <input id="recap-name" class="name-input" aria-label="Story name" maxlength="80">
+      <button class="btn primary" data-recap="export">Export</button>
+    </header>
+    <div class="editor-body">
+      <section class="stage">
+        <div class="canvas-wrap"><canvas id="recap-preview" width="540" height="960"></canvas></div>
+        <div class="transport">
+          <button id="recap-play" class="icon-btn play" data-recap="play" aria-label="Play">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg>
+          </button>
+          <input id="recap-scrub" type="range" min="0" max="1" step="0.01" value="0" aria-label="Position">
+          <span id="recap-time" class="time">0:00.0 / 0:00.0</span>
+        </div>
+        <p id="recap-summary" class="cut-summary"></p>
+        <ul id="recap-warnings" class="warnings"></ul>
+      </section>
+      <section class="panel">
+        <nav class="tabs" role="tablist">
+          <button role="tab" class="tab active" data-rtab="shots">Shots</button>
+          <button role="tab" class="tab" data-rtab="words">Opening &amp; end</button>
+          <button role="tab" class="tab" data-rtab="extras">Extras</button>
+        </nav>
+        <div class="tab-panel" data-rpanel="shots">
+          <button class="btn primary wide" data-recap="add">+ Add photos &amp; clips</button>
+          <p id="recap-empty" class="hint">Pick the shots in the order you want them. Tap a thumbnail to preview it.</p>
+          <ol id="recap-shots" class="shots"></ol>
+          <p class="hint">Write lines the way you would type them in Instagram, and only where they add something. Leave a shot blank if it speaks for itself.</p>
+        </div>
+        <div class="tab-panel" data-rpanel="words" hidden>
+          <div class="field">
+            <label for="recap-hook1">Opening line (over the first shot)</label>
+            <textarea id="recap-hook1" rows="3" maxlength="160" placeholder="3 days before the event, the client asked for full onsite registration and a conference app."></textarea>
+          </div>
+          <div class="field">
+            <label for="recap-hook2">Second line, appears after 3 s (optional)</label>
+            <input id="recap-hook2" type="text" maxlength="60" placeholder="Can we do it?">
+          </div>
+          <div class="field">
+            <label for="recap-end">Ending line (on the last shot)</label>
+            <input id="recap-end" type="text" maxlength="60" placeholder="We just did.">
+          </div>
+          <label class="switch"><input id="recap-logo" type="checkbox"><span>Show my logo at the end</span></label>
+          <p id="recap-logo-note" class="hint"></p>
+          <div class="field">
+            <label>Seconds per photo <output id="recap-photo-len-out"></output></label>
+            <input id="recap-photo-len" type="range" min="1.5" max="4" step="0.5">
+            <p class="hint">Shots change on the beat. Photos shorten automatically to fit your length limit.</p>
+          </div>
+        </div>
+        <div class="tab-panel" data-rpanel="extras" hidden>
+          <div class="field">
+            <label>Screen recording</label>
+            <div id="recap-pip"></div>
+          </div>
+          <div class="field">
+            <label>Music</label>
+            <div class="seg" id="recap-music">
+              <button data-value="true">Original beat</button>
+              <button data-value="false">No music</button>
+            </div>
+            <p class="hint">The beat is made on your phone, so it is copyright-free. Pick No music to add a track inside Instagram.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- New story: choose the kind -->
+  <dialog id="mode-sheet" class="sheet">
+    <form method="dialog" class="modes">
+      <h3>What are you posting?</h3>
+      <button type="button" class="mode" data-action="new-recap"><strong>Event recap</strong><span>Photos and clips from an event: your words, a beat, your logo.</span></button>
+      <button type="button" class="mode" data-action="pick-video"><strong>Talking clip</strong><span>You speaking to camera: cut pauses and retakes, add captions.</span></button>
+      <button class="btn wide" value="cancel">Cancel</button>
+    </form>
+  </dialog>
+
+  <!-- Recap export -->
+  <dialog id="recap-export" class="sheet">
+    <div class="export-body">
+      <h3 id="rx-title">Exporting</h3>
+      <progress id="rx-progress" max="1" value="0"></progress>
+      <p id="rx-status" class="hint">Keep this screen open.</p>
+      <video id="rx-video" playsinline controls hidden></video>
+      <div id="rx-actions" class="export-actions" hidden>
+        <button id="rx-share" class="btn primary wide">Share to Instagram, TikTok…</button>
+        <button id="rx-save" class="btn wide">Save video</button>
+      </div>
+      <button id="rx-close" class="btn wide">Cancel</button>
+    </div>
+  </dialog>
+
   <!-- Word editor -->
   <dialog id="word-sheet" class="sheet">
     <form method="dialog">
@@ -229,6 +329,9 @@
   <!-- Settings -->
   <dialog id="settings" class="sheet">
     <form method="dialog">
+      <h3>Brand logo</h3>
+      <div class="logo-row"><img id="logo-preview" alt="" hidden><span id="logo-none" class="hint">No logo yet. It shows small at the end of event recaps.</span></div>
+      <button type="button" class="btn" data-action="pick-logo">Choose logo (PNG with a clear background works best)</button>
       <h3>Story length</h3>
       <label for="max-seconds">Maximum length</label>
       <select id="max-seconds">
@@ -287,6 +390,10 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <video id="source" playsinline preload="auto" aria-hidden="true"></video>
   <input type="file" id="file-input" accept="video/*" hidden>
+  <input type="file" id="recap-files" accept="image/*,video/*" multiple hidden>
+  <input type="file" id="new-recap-files" accept="image/*,video/*" multiple hidden>
+  <input type="file" id="recap-recording" accept="video/*" hidden>
+  <input type="file" id="logo-input" accept="image/*" hidden>
   <input type="file" id="transcript-input" accept=".json,application/json" hidden>
 </body>
 </html>

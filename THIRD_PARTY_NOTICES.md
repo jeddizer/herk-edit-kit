@@ -17,7 +17,7 @@ brand assets remain unchanged; their inclusion does not grant third-party rights
   build of FFmpeg's AAC encoder (LGPL-2.1-or-later; source at
   https://github.com/Vanilagy/mediabunny and https://ffmpeg.org). The MPL text is
   in app/vendor/MEDIABUNNY-LICENSE.txt. Both files are unmodified upstream builds.
-- Story Studio bundles Montserrat and Abril Fatface subsets in app/fonts under the
+- Story Studio bundles Montserrat, Abril Fatface and Inter subsets in app/fonts under the
   SIL Open Font License 1.1; the license texts sit beside the font files.
 - Some library styles reference Google Fonts. Font licenses remain with their
   publishers. Install and preserve applicable licenses when localizing fonts.
