@@ -123,7 +123,8 @@ export function drawRecapFrame(ctx, W, H, plan, t, sources, opts = {}) {
     if (f?.img) drawPip(ctx, W, H, f.img, f.w, f.h, pip.slide);
   }
   for (const block of plan.texts) {
-    if (t >= block.start && t < block.end) drawTextBlock(ctx, W, H, block, Math.min(1, (t - block.start) / 0.12));
+    // Text on the very first frame shows at full strength: it is the thumbnail.
+    if (t >= block.start && t < block.end) drawTextBlock(ctx, W, H, block, block.start === 0 ? 1 : Math.min(1, (t - block.start) / 0.12));
   }
   if (plan.endAt !== null && t >= plan.endAt && sources.logo && opts.showLogo !== false) {
     drawLogo(ctx, W, H, sources.logo, Math.min(1, (t - plan.endAt) / 0.12));
