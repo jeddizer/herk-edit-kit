@@ -1,6 +1,6 @@
 // Story Studio service worker: offline app shell and the Android share target.
 // Bump VERSION whenever a cached file changes so installed apps update.
-const VERSION = "story-studio-v5";
+const VERSION = "story-studio-v6";
 const SHELL = [
   "./",
   "./index.html",

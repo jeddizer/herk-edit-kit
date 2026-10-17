@@ -16,7 +16,7 @@ export const RECAP_DEFAULTS = {
   hook1: "",
   hook2: "",
   endText: "",
-  showLogo: true,
+  showLogo: false,
   music: true,
   photoSeconds: 2.5,
   pip: null, // { duration, width, height, keep: [{start,end}], cutPauses, from, to }
@@ -60,12 +60,27 @@ export function planRecap(items, opts = {}, limit = 0) {
   const hookLen = o.hook2.trim() ? HOOK_TWO_LINES : o.hook1.trim() ? HOOK_ONE_LINE : 0;
   const hasEnding = !!o.endText.trim() || o.showLogo;
 
+  // The screen recording plays in full (after any trim or pause-cutting the owner
+  // chose): the shots beside it stretch to its length rather than cutting it short.
+  let pipKeep = null;
+  let pipContent = 0;
+  if (o.pip && o.pip.keep?.length) {
+    const skip = o.pip.trimStart ?? 0;
+    pipKeep = (o.pip.cutPauses ? o.pip.keep : [{ start: 0, end: o.pip.duration }])
+      .map((k) => ({ start: Math.max(k.start, skip), end: k.end }))
+      .filter((k) => k.end - k.start > 0.05);
+    pipContent = pipKeep.reduce((a, k) => a + k.end - k.start, 0);
+  }
+  const pipFrom = Math.min(Math.max(0, o.pip?.from ?? 0), items.length - 1);
+  const pipTo = Math.min(Math.max(pipFrom, o.pip?.to ?? items.length - 1), items.length - 1);
+
   let photo = o.photoSeconds;
   let videoMax = 6;
+  const stretch = new Map(); // shot index -> extra seconds beside the recording
   const layout = () => {
     let t = 0;
     return items.map((item, i) => {
-      let dur = shotSeconds(item, photo, videoMax);
+      let dur = shotSeconds(item, photo, videoMax) + (stretch.get(i) ?? 0);
       if (i === 0 && hookLen) dur = Math.max(dur, hookLen);
       if (i === items.length - 1 && hasEnding) dur += END_HOLD;
       const seg = { index: i, item, start: t, end: t + dur };
@@ -81,10 +96,22 @@ export function planRecap(items, opts = {}, limit = 0) {
     else videoMax -= 1;
     segments = layout();
   }
+  if (pipContent > 0) {
+    const covered = () => segments[pipTo].end - (hasEnding && pipTo === segments.length - 1 ? END_HOLD : 0) - segments[pipFrom].start;
+    const short = pipContent - covered();
+    if (short > 0.05) {
+      const per = Math.ceil(short / (pipTo - pipFrom + 1) / BEAT) * BEAT;
+      for (let i = pipFrom; i <= pipTo; i++) stretch.set(i, per);
+      segments = layout();
+    }
+  }
   if (limit && total() > limit) {
-    const per = photo;
-    const extra = Math.ceil((total() - limit) / per);
-    warnings.push(`${total().toFixed(1)} s is over your ${limit} s limit. Remove about ${extra} shot${extra > 1 ? "s" : ""} or raise the limit in Settings.`);
+    if (stretch.size) {
+      warnings.push(`The full screen recording makes this story ${total().toFixed(1)} s, over your ${limit} s limit. Cut its pauses, skip its start, or raise the limit in Settings.`);
+    } else {
+      const extra = Math.ceil((total() - limit) / photo);
+      warnings.push(`${total().toFixed(1)} s is over your ${limit} s limit. Remove about ${extra} shot${extra > 1 ? "s" : ""} or raise the limit in Settings.`);
+    }
   }
 
   segments.forEach((s, i) => {
@@ -116,22 +143,16 @@ export function planRecap(items, opts = {}, limit = 0) {
 
   // Screen recording window: over the chosen shots, sliding out as the ending lands.
   let pip = null;
-  if (o.pip && o.pip.keep?.length) {
-    const from = Math.min(Math.max(0, o.pip.from ?? 0), segments.length - 1);
-    const to = Math.min(Math.max(from, o.pip.to ?? segments.length - 1), segments.length - 1);
-    const start = segments[from].start;
-    let stop = segments[to].end;
+  if (pipKeep?.length) {
+    const start = segments[pipFrom].start;
+    let stop = segments[pipTo].end;
     if (endAt !== null) stop = Math.min(stop, endAt);
     if (stop - start >= 1) {
-      const skip = o.pip.trimStart ?? 0;
-      const keep = (o.pip.cutPauses ? o.pip.keep : [{ start: 0, end: o.pip.duration }])
-        .map((k) => ({ start: Math.max(k.start, skip), end: k.end }))
-        .filter((k) => k.end - k.start > 0.05);
-      const timeline = buildTimeline(keep);
+      const timeline = buildTimeline(pipKeep);
       const content = timeline.length ? timeline.at(-1).outEnd : 0;
       pip = { start, end: round(stop), timeline, content };
-      if (content < stop - start - 0.5) warnings.push(`The screen recording is ${content.toFixed(1)} s but covers ${(stop - start).toFixed(1)} s of shots; it holds its last frame.`);
-      if (content > stop - start + 0.5) warnings.push(`Only the first ${(stop - start).toFixed(1)} s of the ${content.toFixed(1)} s screen recording fits; cover more shots to show it all.`);
+      // Shots snap to the beat, so a recording may end up to one beat per shot early.
+      if (content < stop - start - BEAT * (pipTo - pipFrom + 1) - 0.05) warnings.push(`The screen recording is ${content.toFixed(1)} s but sits beside ${(stop - start).toFixed(1)} s of shots; it holds its last frame.`);
     }
   }
 

@@ -144,9 +144,9 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       S.pipFile = file;
       attachPipEl(file);
       const n = R().items.length;
-      R().pip = { ...info, cutPauses: true, from: Math.max(0, n - 3), to: Math.max(0, n - 1) };
+      R().pip = { ...info, cutPauses: false, trimStart: 0, from: Math.max(1, Math.min(n - 1, n - 3)), to: Math.max(0, n - 1) };
       const kept = info.keep.reduce((a, k) => a + k.end - k.start, 0);
-      toast(`Recording: ${info.duration.toFixed(1)} s → ${kept.toFixed(1)} s after cutting pauses.`);
+      toast(`Recording added: ${info.duration.toFixed(1)} s, played in full. Cutting pauses would make it ${kept.toFixed(1)} s.`);
       changed();
     } catch (err) {
       toast(err.message || String(err), true);
@@ -173,7 +173,7 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       mode: "recap",
       name: `Event recap ${new Date().toLocaleDateString()}`,
       created: Date.now(),
-      recap: { ...structuredClone(RECAP_DEFAULTS), items: [] },
+      recap: { ...structuredClone(RECAP_DEFAULTS), showLogo: false, items: [] },
       thumb: null,
     };
     await show(project);
@@ -306,13 +306,13 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
     const pip = r.pip;
     const box = $("#recap-pip");
     if (!pip) {
-      box.innerHTML = `<p class="hint">Shows as a small phone on the side of your shots. Long pauses and loading screens are cut automatically.</p>
+      box.innerHTML = `<p class="hint">Plays in full as a small phone beside your shots; those shots stretch to fit it. You can cut long pauses after adding it.</p>
         <button class="btn" data-recap="add-recording">Add screen recording</button>`;
     } else {
       const kept = pip.keep.reduce((a, k) => a + k.end - k.start, 0);
       const opts = (sel) => r.items.map((_, i) => `<option value="${i}" ${i === sel ? "selected" : ""}>Shot ${i + 1}</option>`).join("");
       box.innerHTML = `<p class="hint">${pip.duration.toFixed(1)} s recording${pip.cutPauses ? ` → ${kept.toFixed(1)} s after cutting pauses` : ""}.</p>
-        <label class="switch"><input type="checkbox" data-recap="pip-cut" ${pip.cutPauses ? "checked" : ""}><span>Cut long pauses</span></label>
+        <label class="switch"><input type="checkbox" data-recap="pip-cut" ${pip.cutPauses ? "checked" : ""}><span>Cut long pauses and loading screens</span></label>
         <label>Skip the first <output id="pip-skip-out">${(pip.trimStart ?? 0).toFixed(1)} s</output></label>
         <input type="range" min="0" max="${Math.min(15, Math.max(0, pip.duration - 2)).toFixed(1)}" step="0.1" value="${pip.trimStart ?? 0}" data-recap="pip-skip">
         <div class="row two"><div><label>Show from</label><select data-recap="pip-from">${opts(pip.from)}</select></div><div><label>to</label><select data-recap="pip-to">${opts(pip.to)}</select></div></div>

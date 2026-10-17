@@ -105,3 +105,16 @@ test("a recording can skip its first seconds", () => {
   assert.equal(plan.pip.content, 6);
   assert.ok(Math.abs(pipStateAt(plan.pip, 0.5).src - 3.5) < 1e-6);
 });
+
+test("a long screen recording plays in full: the shots beside it stretch instead", () => {
+  const items = Array.from({ length: 6 }, (_, i) => photo(i));
+  const plan = planRecap(items, { endText: "Done.", pip: { duration: 40, keep: [{ start: 0, end: 12 }], cutPauses: false, from: 2, to: 5 } }, 30);
+  assert.equal(plan.pip.content, 40, "uses the whole recording when pauses are not cut");
+  assert.ok(plan.pip.end - plan.pip.start >= 40, `window ${plan.pip.end - plan.pip.start}`);
+  for (const s of plan.segments) assert.equal((s.start * 2) % 1, 0, "still on the beat");
+  assert.ok(!plan.warnings.some((w) => /Only the first/.test(w)));
+  assert.match(plan.warnings.join(" "), /full screen recording makes this story .* over your 30 s limit/, "explains why it runs past the limit");
+  assert.ok(!plan.warnings.some((w) => /holds its last frame/.test(w)), "no warning for beat rounding");
+  const cut = planRecap(items, { endText: "Done.", pip: { duration: 40, keep: [{ start: 0, end: 12 }], cutPauses: true, from: 2, to: 5 } }, 30);
+  assert.equal(cut.pip.content, 12, "pause-cutting is the owner's choice");
+});

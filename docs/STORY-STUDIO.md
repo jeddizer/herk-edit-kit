@@ -31,9 +31,9 @@ For posts made from event photos and clips rather than a talking clip. New story
 | --- | --- |
 | Shots | Photos and clips in your order. Photos get a slow push or pan (landscape shots pan across, portrait shots push in, the last shot pulls back). Clips can be trimmed. Tap a thumbnail to preview that shot. |
 | Your words | An opening line over the first shot, an optional second line after 3 s ("Can we do it?"), a line per shot only where you write one, and an ending line on the last shot. Text looks like Instagram's own: sentence case in white boxes. |
-| Screen recording | Shows as a small phone beside the shots you choose and slides out as the ending lands. Long pauses, loading screens and a still opening are cut automatically; "Skip the first" trims the start. |
+| Screen recording | Plays in full as a small phone beside the shots you choose; those shots stretch to its length, and it slides out as the ending lands. Optional: cut long pauses, loading screens and a still opening, and "Skip the first" seconds. |
 | Beat | An original, copyright-free 120 BPM track made on the device: a ticking build under the opening line, a drop on the first cut, every cut on a kick, a hit on the ending. Or no music, to add a track inside Instagram. |
-| Logo | Saved once in Settings › Brand logo and shown small under the ending line. |
+| Logo | Saved once in Settings › Brand logo and shown small under the ending line. Off by default for each new recap, since not every story is a work story. |
 | Length | Shots snap to the beat and photos shorten to fit your limit; it warns rather than dropping shots. |
 
 These defaults come from the review of the first recap made with this kit:
