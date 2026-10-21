@@ -703,10 +703,11 @@ $("#logo-input").addEventListener("change", async (e) => {
 // ---------------------------------------------------------------------------
 // Event recaps
 const recap = createRecapEditor({ toast, busy, onHome: () => showHome(), getPrefs: () => state.prefs });
+let recapTemplate = "photo";
 $("#new-recap-files").addEventListener("change", (e) => {
   const files = [...e.target.files];
   e.target.value = "";
-  if (files.length) recap.startNew(files);
+  if (files.length) recap.startNew(files, recapTemplate);
 });
 
 // ---------------------------------------------------------------------------
@@ -817,6 +818,7 @@ document.addEventListener("click", async (ev) => {
     else loadProject(el.dataset.id);
   } else if (a === "new-story") $("#mode-sheet").showModal();
   else if (a === "new-recap") {
+    recapTemplate = el.dataset.template || "photo";
     $("#mode-sheet").close();
     $("#new-recap-files").click();
   } else if (a === "pick-logo") $("#logo-input").click();

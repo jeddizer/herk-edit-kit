@@ -1,7 +1,7 @@
 // Event recap editor: photos and clips from an event, in the owner's order, with
 // their own words, an optional screen recording beside the shots, and a beat.
 import * as store from "./store.js";
-import { planRecap, RECAP_DEFAULTS, pipStateAt, segmentAt } from "./recap-core.js";
+import { planRecap, RECAP_DEFAULTS, RECAP_TEMPLATES, templateFor, pairShots, pipStateAt, segmentAt } from "./recap-core.js";
 import { drawRecapFrame } from "./recap-render.js";
 import { renderMusic, musicToWav } from "./music.js";
 
@@ -167,17 +167,32 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
   }
 
   // ---------------------------------------------------------------- open / close
-  async function startNew(files) {
+  async function startNew(files, key = "photo") {
+    const tpl = templateFor(key, getPrefs().recapTemplates);
     const project = {
       id: uid(),
       mode: "recap",
-      name: `Event recap ${new Date().toLocaleDateString()}`,
+      name: `${tpl.label} ${new Date().toLocaleDateString()}`,
       created: Date.now(),
-      recap: { ...structuredClone(RECAP_DEFAULTS), showLogo: false, items: [] },
+      recap: {
+        ...structuredClone(RECAP_DEFAULTS),
+        hook1: tpl.hook1,
+        hook2: tpl.hook2,
+        endText: tpl.endText,
+        showLogo: !!tpl.showLogo,
+        template: tpl.key,
+        captions: [...tpl.captions],
+        items: [],
+      },
       thumb: null,
     };
     await show(project);
     await addFiles(files);
+    if (tpl.pairs && R().items.length) {
+      R().items = pairShots(R().items);
+      changed({ list: true });
+      if (R().items.length % 2) toast("Odd number of photos: the last one plays on its own. Add its pair or remove it.");
+    }
     store.requestPersistence();
   }
 
@@ -274,8 +289,10 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
           <div class="shot-row">
             <button class="shot-thumb" data-recap-seek="${i}" aria-label="Preview shot ${i + 1}">${it.thumb ? `<img src="${esc(it.thumb)}" alt="">` : ""}<span>${i + 1}</span></button>
             <div class="shot-main">
-              <div class="shot-meta">${it.kind === "video" ? "Clip" : "Photo"} · ${len.toFixed(1)} s${i === 0 && (R().hook1 || R().hook2) ? " · opening" : ""}${i === items.length - 1 && (R().endText || R().showLogo) ? " · ending" : ""}</div>
+              <div class="shot-meta">${it.kind === "video" ? "Clip" : "Photo"} · ${len.toFixed(1)} s${i > 0 && it.reveal ? " · after" : items[i + 1]?.reveal ? " · before" : ""}${i === 0 && (R().hook1 || R().hook2) ? " · opening" : ""}${i === items.length - 1 && (R().endText || R().showLogo) ? " · ending" : ""}</div>
               <input type="text" class="shot-text" data-shot-text="${i}" value="${esc(it.text)}" placeholder="${i === 0 && (R().hook1 || R().hook2) ? "Opening text shows here" : "Text on this shot (optional)"}" maxlength="80" ${i === 0 && (R().hook1 || R().hook2) ? "disabled" : ""}>
+              ${i === 0 && (R().hook1 || R().hook2) ? "" : chips(it, i)}
+              ${i > 0 && (R().template === "beforeafter" || it.reveal) ? `<label class="switch small"><input type="checkbox" data-shot-reveal="${i}" ${it.reveal ? "checked" : ""}><span>After shot: wipe in over shot ${i}</span></label>` : ""}
             </div>
             <div class="shot-tools">
               <button class="icon-btn sm" data-shot-move="${i}:-1" aria-label="Move up" ${i === 0 ? "disabled" : ""}>↑</button>
@@ -290,8 +307,20 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
     $("#recap-empty").hidden = items.length > 0;
   }
 
+  function chips(it, i) {
+    const list = R().captions ?? [];
+    if (!list.length) return "";
+    return `<div class="chips">${list.map((c, j) => `<button type="button" class="chip ${it.text === c ? "on" : ""}" data-chip="${i}:${j}">${esc(c)}</button>`).join("")}</div>`;
+  }
+
   function renderOpening() {
     const r = R();
+    const saved = getPrefs().recapTemplates?.[r.template];
+    $("#recap-template-name").textContent = (RECAP_TEMPLATES[r.template] ?? RECAP_TEMPLATES.photo).label;
+    $("#recap-captions").value = (r.captions ?? []).join("\n");
+    $("#recap-template-note").textContent = saved
+      ? "New stories of this kind start with your saved lines, logo choice and captions."
+      : "New stories of this kind start with the built-in lines. Save to make this wording your own.";
     $("#recap-hook1").value = r.hook1;
     $("#recap-hook2").value = r.hook2;
     $("#recap-end").value = r.endText;
@@ -422,6 +451,7 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
     if (!plan.total) return toast("Add photos or clips first.", true);
     const limit = getPrefs().maxSeconds || 0;
     if (limit && plan.total > limit + 0.05 && !confirm(`This story is ${plan.total.toFixed(1)} s, over your ${limit} s limit. Export anyway?`)) return;
+    if (plan.warnings.some((w) => w.startsWith("Fill in the ___")) && !confirm("Some text still has a ___ blank from the template. Export anyway?")) return;
     const sheet = $("#recap-export");
     $("#rx-title").textContent = "Exporting";
     $("#rx-progress").hidden = false;
@@ -512,6 +542,14 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       }
       return changed({ list: true });
     }
+    const chip = ev.target.closest("[data-chip]");
+    if (chip) {
+      const [i, j] = chip.dataset.chip.split(":").map(Number);
+      const it = R().items[i];
+      const c = R().captions[j];
+      it.text = it.text === c ? "" : c;
+      return changed({ list: true });
+    }
     const sk = ev.target.closest("[data-recap-seek]");
     if (sk) {
       const seg = S.plan.segments[Number(sk.dataset.recapSeek)];
@@ -539,6 +577,21 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       store.deleteMedia(`${S.project.id}:pip`).catch(() => {});
       changed();
     } else if (a === "export") exportNow();
+    else if (a === "save-template") {
+      const r = R();
+      const prefs = getPrefs();
+      prefs.recapTemplates = { ...prefs.recapTemplates, [r.template]: { hook1: r.hook1, hook2: r.hook2, endText: r.endText, showLogo: r.showLogo, captions: [...r.captions] } };
+      store.savePrefs(prefs);
+      renderOpening();
+      toast(`Saved. New ${(RECAP_TEMPLATES[r.template] ?? RECAP_TEMPLATES.photo).label} stories start with these lines.`);
+    } else if (a === "reset-template") {
+      const r = R();
+      const tpl = RECAP_TEMPLATES[r.template] ?? RECAP_TEMPLATES.photo;
+      Object.assign(r, { hook1: tpl.hook1, hook2: tpl.hook2, endText: tpl.endText, showLogo: !!tpl.showLogo, captions: [...tpl.captions] });
+      renderOpening();
+      changed({ list: true });
+      toast("Built-in lines applied to this story. Your saved template is unchanged.");
+    }
   });
 
   screen.addEventListener("input", (ev) => {
@@ -568,6 +621,11 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       r.endText = $("#recap-end").value;
       return changed();
     }
+    if (el.id === "recap-captions") {
+      r.captions = el.value.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 30);
+      renderShots();
+      return persist();
+    }
     if (el.id === "recap-photo-len") {
       r.photoSeconds = Number(el.value);
       $("#recap-photo-len-out").textContent = `${r.photoSeconds} s`;
@@ -581,7 +639,7 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
       return persist();
     }
     if (el.id === "recap-name") {
-      S.project.name = el.value.trim() || "Event recap";
+      S.project.name = el.value.trim() || "Story";
       return persist();
     }
   });
@@ -592,6 +650,10 @@ export function createRecapEditor({ toast, busy, onHome, getPrefs }) {
     if (el.id === "recap-logo") {
       r.showLogo = el.checked;
       return changed();
+    }
+    if (el.matches("[data-shot-reveal]")) {
+      r.items[Number(el.dataset.shotReveal)].reveal = el.checked;
+      return changed({ list: true });
     }
     if (el.matches("[data-shot-text]") || el.matches("[data-trim-in]") || el.matches("[data-trim-len]") || el.id === "recap-hook1" || el.id === "recap-hook2") return renderShots();
     const a = el.dataset.recap;

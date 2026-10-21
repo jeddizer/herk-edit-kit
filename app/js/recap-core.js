@@ -11,6 +11,47 @@ export const HOOK_TWO_LINES = 6.0;
 export const HOOK_SECOND_LINE_AT = 3.0;
 export const END_HOLD = 3.0;
 export const PIP_SLIDE = 0.35;
+export const WIPE = 1.0; // before/after reveal: two beats
+
+// Story templates. Every line is a starting point the owner edits; nothing here is
+// shown unless it stays in the story. Owners can save their own wording per template.
+export const RECAP_TEMPLATES = {
+  event: {
+    label: "Event job",
+    hook1: "___ days before the event, the client asked for ___.",
+    hook2: "Can we do it?",
+    endText: "We just did.",
+    showLogo: true,
+    captions: ["Day 1", "the night before", "self check-in kiosks", "check-in at the door", "and the conference app", "polls straight from the app", "full house"],
+  },
+  beforeafter: {
+    label: "Before / after",
+    hook1: "",
+    hook2: "",
+    endText: "",
+    showLogo: false,
+    captions: ["Before", "After", "Empty hall", "Show day", "The day before", "Done"],
+    pairs: true,
+  },
+  photo: { label: "Photo story", hook1: "", hook2: "", endText: "", showLogo: false, captions: [] },
+};
+
+// A template with the owner's saved wording laid over the built-in lines.
+export function templateFor(key, saved = {}) {
+  const base = RECAP_TEMPLATES[key] ?? RECAP_TEMPLATES.photo;
+  const own = saved?.[key] ?? {};
+  return { ...structuredClone(base), ...structuredClone(own), key: RECAP_TEMPLATES[key] ? key : "photo" };
+}
+
+// Before/after: shots picked in pairs. Each second shot wipes in over the one before it.
+export function pairShots(items, labels = ["Before", "After"]) {
+  return items.map((it, i) => {
+    const after = i % 2 === 1;
+    return { ...it, reveal: after, text: it.text || labels[after ? 1 : 0] || "" };
+  });
+}
+
+const BLANK = /_{2,}/;
 
 export const RECAP_DEFAULTS = {
   hook1: "",
@@ -20,6 +61,8 @@ export const RECAP_DEFAULTS = {
   music: true,
   photoSeconds: 2.5,
   pip: null, // { duration, width, height, keep: [{start,end}], cutPauses, from, to }
+  template: "photo",
+  captions: [], // quick captions for the shot list
 };
 
 const round = (n) => Math.round(n * 1000) / 1000;
@@ -47,6 +90,9 @@ function shotSeconds(item, photoSeconds, videoMax) {
   }
   return snapBeat(photoSeconds, 1.5);
 }
+
+// Shots that wipe in over the previous one (never the first shot).
+const reveals = (items) => items.map((it, i) => i > 0 && !!it.reveal);
 
 /**
  * Lay the shots out on the beat grid and fit them to the length limit.
@@ -77,10 +123,11 @@ export function planRecap(items, opts = {}, limit = 0) {
   let photo = o.photoSeconds;
   let videoMax = 6;
   const stretch = new Map(); // shot index -> extra seconds beside the recording
+  const wipes = reveals(items);
   const layout = () => {
     let t = 0;
     return items.map((item, i) => {
-      let dur = shotSeconds(item, photo, videoMax) + (stretch.get(i) ?? 0);
+      let dur = shotSeconds(item, photo, videoMax) + (wipes[i] ? WIPE : 0) + (stretch.get(i) ?? 0);
       if (i === 0 && hookLen) dur = Math.max(dur, hookLen);
       if (i === items.length - 1 && hasEnding) dur += END_HOLD;
       const seg = { index: i, item, start: t, end: t + dur };
@@ -119,6 +166,19 @@ export function planRecap(items, opts = {}, limit = 0) {
     s.end = round(s.end);
     s.move = moveFor(s.item, i, i === segments.length - 1 && segments.length > 1);
     s.srcIn = s.item.kind === "video" ? s.item.trimIn ?? 0 : 0;
+    s.wipe = null;
+  });
+  // Before/after pairs share one centred, slowly tightening frame, so the after
+  // shot lines up with the before shot as the divider sweeps across.
+  segments.forEach((s, i) => {
+    if (!wipes[i]) return;
+    const prev = segments[i - 1];
+    if (!prev.matched) prev.move = { cx0: 0.5, cy0: 0.5, z0: 1.0, cx1: 0.5, cy1: 0.5, z1: 1.05 };
+    prev.matched = true;
+    const z = prev.move.z1;
+    s.move = { cx0: 0.5, cy0: 0.5, z0: z, cx1: 0.5, cy1: 0.5, z1: round(z + 0.05) };
+    s.matched = true;
+    s.wipe = { dur: WIPE };
   });
 
   const end = total();
@@ -136,8 +196,11 @@ export function planRecap(items, opts = {}, limit = 0) {
   segments.forEach((s, i) => {
     const line = (s.item.text ?? "").trim();
     if (!line || (i === 0 && hookLen)) return;
-    const stop = endAt !== null && s.end > endAt ? endAt : s.end;
-    if (stop > s.start) texts.push({ start: s.start, end: stop, lines: [line], place: "top" });
+    // A before label stays up until the divider is halfway; the after label lands once it has crossed.
+    const start = s.wipe ? round(s.start + s.wipe.dur) : s.start;
+    let stop = segments[i + 1]?.wipe ? round(s.end + segments[i + 1].wipe.dur / 2) : s.end;
+    if (endAt !== null && stop > endAt) stop = endAt;
+    if (stop > start) texts.push({ start, end: stop, lines: [line], place: "top" });
   });
   if (endAt !== null && o.endText.trim()) texts.push({ start: endAt, end, lines: [o.endText.trim()], place: "top" });
 
@@ -165,10 +228,14 @@ export function planRecap(items, opts = {}, limit = 0) {
         hit: endAt,
         final: endAt !== null ? Math.min(end - 0.5, endAt + 1) : null,
         taps: [],
-        whoosh: pip ? [pip.start] : [],
+        whoosh: [...(pip ? [pip.start] : []), ...segments.filter((s) => s.wipe).map((s) => s.start)].sort((a, b) => a - b),
         crash: segments.filter((s, i) => i > 0 && i % 4 === 0).map((s) => s.start),
       }
     : null;
+
+  // Template blanks left in: never post a "___".
+  const blanks = [o.hook1, o.hook2, o.endText, ...items.map((it, i) => (i === 0 && hookLen ? "" : it.text ?? ""))].filter((l) => BLANK.test(l ?? ""));
+  if (blanks.length) warnings.unshift(`Fill in the ___ before posting: "${blanks[0].trim()}"`);
 
   return { segments, texts, total: end, pip, endAt, music, warnings, photoSeconds: photo };
 }

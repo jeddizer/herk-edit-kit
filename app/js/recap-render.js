@@ -1,5 +1,5 @@
 // Draws one recap frame. Shared by the live preview and the export so they match.
-import { cropRect, segmentAt, pipStateAt } from "./recap-core.js";
+import { cropRect, segmentAt, pipStateAt, ease } from "./recap-core.js";
 
 const TEXT_FONT = '"Inter", -apple-system, "Helvetica Neue", Arial, sans-serif';
 
@@ -99,9 +99,44 @@ function drawLogo(ctx, W, H, logo, alpha) {
   ctx.restore();
 }
 
+function drawShot(ctx, W, H, seg, p, shot) {
+  if (!shot?.img || !shot.w || !shot.h) return;
+  const r = cropRect(seg.move, p, shot.w, shot.h, W, H);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(shot.img, r.x, r.y, r.w, r.h, 0, 0, W, H);
+}
+
+// Before/after divider: a white line with a round handle, like a comparison slider.
+function drawDivider(ctx, W, H, x) {
+  const k = W / 1080;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 18 * k;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(x - 4 * k, 0, 8 * k, H);
+  ctx.beginPath();
+  ctx.arc(x, H / 2, 40 * k, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.fillStyle = "#111111";
+  const a = 11 * k;
+  for (const d of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(x + d * 8 * k, H / 2 - a);
+    ctx.lineTo(x + d * (8 * k + a * 1.2), H / 2);
+    ctx.lineTo(x + d * 8 * k, H / 2 + a);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /**
  * @param sources.shot(segment, t) -> { img, w, h } | null   frame for the current shot
  * @param sources.pip(srcTime) -> { img, w, h } | null       screen-recording frame
+ * @param sources.prev(segment) -> { img, w, h } | null      last frame of a before shot (defaults to shot)
  * @param sources.logo ImageBitmap | null
  */
 export function drawRecapFrame(ctx, W, H, plan, t, sources, opts = {}) {
@@ -110,13 +145,20 @@ export function drawRecapFrame(ctx, W, H, plan, t, sources, opts = {}) {
   if (!plan.segments.length) return;
   const seg = segmentAt(plan, t);
   const shot = sources.shot(seg, t);
-  if (shot?.img && shot.w && shot.h) {
-    const p = (t - seg.start) / Math.max(0.001, seg.end - seg.start);
-    const r = cropRect(seg.move, p, shot.w, shot.h, W, H);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(shot.img, r.x, r.y, r.w, r.h, 0, 0, W, H);
-  }
+  const p = (t - seg.start) / Math.max(0.001, seg.end - seg.start);
+  if (seg.wipe && t < seg.start + seg.wipe.dur && seg.index > 0) {
+    // The after shot is revealed from the left as the divider sweeps across the before shot.
+    const prev = plan.segments[seg.index - 1];
+    drawShot(ctx, W, H, prev, 1, (sources.prev ?? sources.shot)(prev, t));
+    const x = W * ease(Math.min(1, Math.max(0, (t - seg.start) / seg.wipe.dur)));
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, x, H);
+    ctx.clip();
+    drawShot(ctx, W, H, seg, p, shot);
+    ctx.restore();
+    drawDivider(ctx, W, H, x);
+  } else drawShot(ctx, W, H, seg, p, shot);
   const pip = pipStateAt(plan.pip, t);
   if (pip) {
     const f = sources.pip?.(pip.src);
