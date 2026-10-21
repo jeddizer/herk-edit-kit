@@ -22,10 +22,25 @@ review loop, use the agent skills (`/short-form-edit`, `/edit-video`) on a compu
 | Export | Frame-accurate, single pass: each output frame maps to an exact source time and audio is sliced sample-accurately from the same ranges, with 5 ms fades at joins. | Playbook "lessons that cost us time" |
 | Kit hand-off | Download captions (`.srt`) and a JSON bundle with the EDL and source/edited word timings in this kit's transcript format. | [Tools guide](TOOLS-AND-API-KEYS.md) |
 
-## Event recap mode
+## Recap mode: photo and clip stories
 
-For posts made from event photos and clips rather than a talking clip. New story ›
-**Event recap**, pick your shots in order, and write only the lines you want.
+For posts made from photos and clips rather than a talking clip. New story offers
+three starting points; all of them are the same editor and every line stays editable.
+
+| Template | Starts with |
+| --- | --- |
+| **Event job** | A two-line opening with `___` blanks to fill ("___ days before the event, the client asked for ___." then "Can we do it?"), the ending "We just did.", the logo on, and quick captions such as "Day 1" and "self check-in kiosks". |
+| **Before / after** | Pick photos in pairs: before, then after. Each after shot wipes in over its before behind a slider line, both framed alike so they line up, with "Before" and "After" labels you can rename. |
+| **Photo story** | Nothing prefilled: your words only, logo off. |
+
+- **Quick captions** appear as chips under each shot. Tap one to fill the shot's text, then
+  edit it; tap again to clear it. Edit the list in Opening & end.
+- **Save as my template** stores the opening, ending, logo choice and captions on this
+  device, so the next story of that kind starts with your wording. **Use built-in lines**
+  puts the defaults back into the current story without touching your saved template.
+- Any `___` left in the text shows a warning, and export asks before saving it.
+- In any story, tick **After shot: wipe in over shot N** on a shot to make a before/after
+  pair out of it and the shot before it.
 
 | Part | What it does |
 | --- | --- |

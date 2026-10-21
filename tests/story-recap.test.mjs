@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planRecap, motionKeepRanges, pipStateAt, cropRect, moveFor, END_HOLD } from "../app/js/recap-core.js";
+import { planRecap, motionKeepRanges, pipStateAt, cropRect, moveFor, END_HOLD, WIPE, pairShots, templateFor, RECAP_TEMPLATES } from "../app/js/recap-core.js";
 import { renderMusic, musicToWav, SR } from "../app/js/music.js";
 
 const photo = (n, w = 1512, h = 2016) => ({ id: `p${n}`, kind: "photo", width: w, height: h, text: "" });
@@ -117,4 +117,47 @@ test("a long screen recording plays in full: the shots beside it stretch instead
   assert.ok(!plan.warnings.some((w) => /holds its last frame/.test(w)), "no warning for beat rounding");
   const cut = planRecap(items, { endText: "Done.", pip: { duration: 40, keep: [{ start: 0, end: 12 }], cutPauses: true, from: 2, to: 5 } }, 30);
   assert.equal(cut.pip.content, 12, "pause-cutting is the owner's choice");
+});
+
+test("before/after: each after shot wipes in over a matched before frame", () => {
+  const items = pairShots([photo(1), photo(2, 2016, 1512), photo(3), photo(4)]);
+  assert.deepEqual(items.map((it) => [it.reveal, it.text]), [[false, "Before"], [true, "After"], [false, "Before"], [true, "After"]]);
+  const plan = planRecap(items, {}, 0);
+  const [b1, a1, b2, a2] = plan.segments;
+  assert.equal(b1.wipe, null);
+  assert.deepEqual(a1.wipe, { dur: WIPE });
+  assert.equal(a1.end - a1.start, 2.5 + WIPE, "the after shot gets the wipe on top of its normal hold");
+  assert.equal(a1.move.z0, b1.move.z1, "after picks up the before framing");
+  assert.equal(a1.move.cx0, 0.5, "landscape after shot does not pan away from the match");
+  for (const s of plan.segments) assert.equal((s.start * 2) % 1, 0, "still on the beat");
+  const label = (txt) => plan.texts.find((x) => x.lines[0] === txt && x.start >= a1.start - 3 && x.start < b2.start);
+  assert.equal(label("Before").end, a1.start + WIPE / 2, "before label stays until the divider is halfway");
+  assert.equal(label("After").start, a1.start + WIPE, "after label lands once the divider has crossed");
+  assert.deepEqual(plan.music.whoosh, [a1.start, a2.start]);
+});
+
+test("a reveal on the first shot is ignored", () => {
+  const plan = planRecap([{ ...photo(1), reveal: true }, photo(2)], {}, 0);
+  assert.equal(plan.segments[0].wipe, null);
+});
+
+test("templates start with editable lines and the owner's saved wording wins", () => {
+  const built = templateFor("event");
+  assert.equal(built.endText, "We just did.");
+  assert.ok(built.showLogo);
+  const own = templateFor("event", { event: { hook1: "2 days out, a new ask came in.", captions: ["kiosks"] } });
+  assert.equal(own.hook1, "2 days out, a new ask came in.");
+  assert.deepEqual(own.captions, ["kiosks"]);
+  assert.equal(own.hook2, "Can we do it?", "unsaved lines fall back to the built-in ones");
+  assert.equal(templateFor("nope").key, "photo");
+  built.captions.push("x");
+  assert.ok(!RECAP_TEMPLATES.event.captions.includes("x"), "editing a story never edits the template");
+});
+
+test("template blanks left in the text are flagged before posting", () => {
+  const t = templateFor("event");
+  const plan = planRecap([photo(1), photo(2)], t, 0);
+  assert.match(plan.warnings[0], /Fill in the ___/);
+  const done = planRecap([photo(1), photo(2)], { ...t, hook1: "3 days before the event, the client asked for onsite registration." }, 0);
+  assert.ok(!done.warnings.some((w) => /___/.test(w)));
 });

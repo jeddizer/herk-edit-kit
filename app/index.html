@@ -242,6 +242,18 @@
           <p class="hint">Write lines the way you would type them in Instagram, and only where they add something. Leave a shot blank if it speaks for itself.</p>
         </div>
         <div class="tab-panel" data-rpanel="words" hidden>
+          <div class="template-card">
+            <p><strong id="recap-template-name"></strong> template. Every line below is yours to edit.</p>
+            <div class="field">
+              <label for="recap-captions">Quick captions (one per line, tap them under each shot)</label>
+              <textarea id="recap-captions" rows="4" maxlength="800"></textarea>
+            </div>
+            <div class="row">
+              <button class="btn" data-recap="save-template">Save as my template</button>
+              <button class="btn" data-recap="reset-template">Use built-in lines</button>
+            </div>
+            <p id="recap-template-note" class="hint"></p>
+          </div>
           <div class="field">
             <label for="recap-hook1">Opening line (over the first shot)</label>
             <textarea id="recap-hook1" rows="3" maxlength="160" placeholder="3 days before the event, the client asked for full onsite registration and a conference app."></textarea>
@@ -284,7 +296,9 @@
   <dialog id="mode-sheet" class="sheet">
     <form method="dialog" class="modes">
       <h3>What are you posting?</h3>
-      <button type="button" class="mode" data-action="new-recap"><strong>Event recap</strong><span>Photos and clips from an event: your words, a beat, your logo.</span></button>
+      <button type="button" class="mode" data-action="new-recap" data-template="event"><strong>Event job</strong><span>Photos and clips from a job you ran. Opening, ending and logo come prefilled; edit every line.</span></button>
+      <button type="button" class="mode" data-action="new-recap" data-template="beforeafter"><strong>Before / after</strong><span>Pick photos in pairs: before, then after. Each after wipes in over its before.</span></button>
+      <button type="button" class="mode" data-action="new-recap" data-template="photo"><strong>Photo story</strong><span>Any photos and clips: your words only, on a beat.</span></button>
       <button type="button" class="mode" data-action="pick-video"><strong>Talking clip</strong><span>You speaking to camera: cut pauses and retakes, add captions.</span></button>
       <button class="btn wide" value="cancel">Cancel</button>
     </form>

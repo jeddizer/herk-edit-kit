@@ -161,6 +161,7 @@ export async function exportRecap({ plan, shots, pipFile, logo, music, settings,
     }
 
     let current = { index: -1, iter: null, frame: null, dims: null };
+    let prevFrame = null; // last frame of the previous clip, for before/after wipes
     const frames = Math.round(total * fps);
     for (let i = 0; i < frames; i++) {
       if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
@@ -168,6 +169,7 @@ export async function exportRecap({ plan, shots, pipFile, logo, music, settings,
       const seg = segmentAt(plan, t);
       const shot = shots[seg.index];
       if (current.index !== seg.index) {
+        prevFrame = current.frame ? { img: current.frame, ...current.dims } : null;
         current = { index: seg.index, iter: null, frame: null, dims: null };
         if (shot.kind === "video") {
           const track = await open(shot.file).getPrimaryVideoTrack();
@@ -197,6 +199,7 @@ export async function exportRecap({ plan, shots, pipFile, logo, music, settings,
         t,
         {
           shot: () => (shot.kind === "video" ? (current.frame ? { img: current.frame, ...current.dims } : null) : { img: shot.bitmap, w: shot.bitmap.width, h: shot.bitmap.height }),
+          prev: (p) => (shots[p.index].kind === "video" ? prevFrame : { img: shots[p.index].bitmap, w: shots[p.index].bitmap.width, h: shots[p.index].bitmap.height }),
           pip: () => (pipFrame ? { img: pipFrame, ...pipDims } : null),
           logo,
         },
